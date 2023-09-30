@@ -1,8 +1,19 @@
-import app from './app';
+import express from "express";
+import validmove from "./api/validMoves/validMoves.router";
+import cors from "cors"
 
+const app = express();
+app.use(cors({
+  origin: 'http://localhost:3000',
+}));
 const port = process.env.PORT || 5000;
+
+app.use('/chess/validmoves',validmove);
+
 app.listen(port, () => {
-  /* eslint-disable no-console */
   console.log(`Listening: http://localhost:${port}`);
-  /* eslint-enable no-console */
 });
+app.get("/", (req, res) => {
+  res.send("you are on hoe page!");
+});
+
