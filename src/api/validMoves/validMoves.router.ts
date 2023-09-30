@@ -1,5 +1,7 @@
 import express from 'express';
-import findValidMoves from './components/ValidMovesLogic/findValidMoves';
+// import findValidMoves from 'findValidMoves';
+import { findValidMoves } from 'chess-validmoves';
+
 const validmoves = express.Router();
 validmoves.use(express.json());
 
