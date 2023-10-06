@@ -23,6 +23,7 @@
     "@prisma/client": "^5.3.1",
     "@types/lodash": "^4.14.199",
     "chess-validmoves": "^1.0.1",
+    "chess.js": "^1.0.0-beta.6",
     "cors": "^2.8.5",
     "dotenv": "^16.1.4",
     "express": "^4.18.2",

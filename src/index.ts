@@ -15,6 +15,6 @@ app.listen(port, () => {
 });
 
 app.get("/", (req, res) => {
-  res.send("you are on hoe page!");
+  res.send("you are on home page!");
 });
 
