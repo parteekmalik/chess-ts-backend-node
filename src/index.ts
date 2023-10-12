@@ -67,12 +67,13 @@ io.on("connection", (socket: any) => {
         }
     });
     socket.on("connectwithuserid", (data: any) => {
-        const { userid } = data;
-        useridwithsocket[userid] = socket.id; 
-        socketidtouserandgameid[socket.id] = { userid, gameid: data.gameid }; 
-        io.in(socket.id).socketsJoin(data.gameid);
-        console.log(userid);
-    }); 
+        const { userid, gameid } = data;
+        useridwithsocket[userid] = socket.id;
+        socketidtouserandgameid[socket.id] = { userid, gameid };
+        io.in(socket.id).socketsJoin(gameid);
+        io.to(socket.id).emit("initialize-prev-moves", games[gameid].game.history());
+        console.log("connectwithuserid", userid);
+    });
 
     // Listen for the "disconnect" event and log it
     socket.on("disconnect", () => { 
