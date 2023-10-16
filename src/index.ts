@@ -19,10 +19,12 @@
 // });
 
 // Import express, http and socket.io
+
 const express = require("express");
 const http = require("http");
 const socketio = require("socket.io");
 import { Chess, PieceSymbol } from "chess.js";
+import moment from "moment";
 
 const app = express();
 const server = http.createServer(app);
@@ -34,9 +36,29 @@ const io = socketio(server, {
 });
 
 let useridwithsocket: { [key: string]: string } = {};
-let socketidtouserandgameid: { [key: string]: { userid: string; gameid: string } } = {};
+let socketidtouserandmatchid: { [key: string]: { userid: string; matchid: string } } = {};
 
-let games: { [key: string]: { players: { [key: string]: string }; game: Chess } } = { "12345": { players: { w: "1", b: "2" }, game: new Chess() } };
+let games: {
+    [key: string]: {
+        players: { [key: string]: string };
+        game: Chess;
+        time: Date[];
+        startedAt: Date;
+        stats: { isover: boolean; reason: string; winner: string };
+    };
+} = {
+    "12345": {
+        players: { w: "1", b: "2" },
+        startedAt: moment().toDate(),
+        game: new Chess(),
+        time: [moment().toDate()],
+        stats: {
+            isover: false,
+            winner: "still playing",
+            reason: "still playing",
+        },
+    },
+};
 
 // Listen for socket connections
 io.on("connection", (socket: any) => {
@@ -47,36 +69,64 @@ io.on("connection", (socket: any) => {
     socket.on("message", (msg: any) => {
         const { from, to } = msg;
         console.log("Message received from : " + socket.id + " -> " + from + to);
-        const { userid, gameid } = socketidtouserandgameid[socket.id];
-        console.log(userid, gameid);
-        const { players, game } = games[gameid];
+        const { userid, matchid } = socketidtouserandmatchid[socket.id];
+        console.log(userid, matchid);
+        const { players, game } = games[matchid];
         console.log(game.turn());
         console.log(players[game.turn()], userid);
         if (players[game.turn()] === userid) {
             try {
                 game.move({ from, to });
-                io.to("12345").emit("message-rcv", game.history()[game.history().length - 1]);
+                games[matchid].time.push(moment().toDate());
+                if (game.isDraw()) {
+                    games[matchid].stats = { isover: true, winner: "draw", reason: "repetation" };
+                    io.to("12345").emit("game-over-byMove", {
+                        move: game.history()[game.history().length - 1],
+                        time: games[matchid].time[games[matchid].time.length - 1],
+                        stats: games[matchid].stats,
+                    });
+                } else if (game.isCheckmate()) {
+                    games[matchid].stats = { isover: true, winner: game.history().length % 2 == 1 ? "w" : "b", reason: "checkmate" };
+                    io.to("12345").emit("game-over-byMove", {
+                        move: game.history()[game.history().length - 1],
+                        time: games[matchid].time[games[matchid].time.length - 1],
+                        stats: games[matchid].stats,
+                    });
+                } else {
+                    io.to("12345").emit("message-rcv", {
+                        move: game.history()[game.history().length - 1],
+                        time: games[matchid].time[games[matchid].time.length - 1],
+                    });
+                }
             } catch {
                 try {
                     game.move({ from, to, promotion: "q" as PieceSymbol });
-                    io.to("12345").emit("message-rcv", game.history()[game.history().length - 1]);
+                    games[matchid].time.push(moment().toDate());
+                    io.to("12345").emit("message-rcv", { move: game.history()[game.history().length - 1], time: moment().toDate() });
                 } catch {
                     console.log("wrong move");
-                } 
+                }
             }
         }
     });
     socket.on("connectwithuserid", (data: any) => {
-        const { userid, gameid } = data;
+        const { userid, matchid } = data;
         useridwithsocket[userid] = socket.id;
-        socketidtouserandgameid[socket.id] = { userid, gameid };
-        io.in(socket.id).socketsJoin(gameid);
-        io.to(socket.id).emit("initialize-prev-moves", games[gameid].game.history());
+        socketidtouserandmatchid[socket.id] = { userid, matchid };
+        io.in(socket.id).socketsJoin(matchid);
+        const curGame = games[matchid];
+        io.to(socket.id).emit("initialize-prev-moves", {
+            history: curGame.game.history(),
+            startedAt: curGame.startedAt,
+            moveTime: [...curGame.time, moment().toDate()],
+            curTime: moment().toDate(),
+            stats: curGame.stats,
+        });
         console.log("connectwithuserid", userid);
     });
 
     // Listen for the "disconnect" event and log it
-    socket.on("disconnect", () => { 
+    socket.on("disconnect", () => {
         console.log("A user disconnected");
     });
 });
@@ -95,7 +145,7 @@ server.listen(3001, () => {
 //   if (!newgame.isGameOver()) {
 //     const moves = newgame.moves();
 //     const move = moves[Math.floor(Math.random() * moves.length)];
-//     newgame.move(move);
+//     newgame.move(move); 
 //     setGame(newgame);
 //   }
 // };
