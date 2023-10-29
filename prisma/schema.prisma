@@ -10,22 +10,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// model User {
-//   id Int @id @default(autoincrement())
-//   name String
-// }
-model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  posts Post[]
+model profile {
+  user_id       Int     @id @default(autoincrement())
+  email         String  @unique
+  name          String?
+  match_history Int
 }
 
-model Post {
-  id        Int     @id @default(autoincrement())
-  title     String
-  content   String?
-  published Boolean @default(false)
-  author    User    @relation(fields: [authorId], references: [id])
-  authorId  Int
+model match {
+  match_id      Int      @id @default(autoincrement())
+  board         String
+  created_at    String
+  moves_history String[]
+  winner        String?
+  reason        String?
+  white         Int
+  black         Int
+  game_type     Json
+}
+
+model users {
+  user_name String @unique
+  password  String
+  userid    Int    @unique @default(autoincrement())
 }

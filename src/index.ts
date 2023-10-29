@@ -116,7 +116,7 @@ io.on("connection", (socket: any) => {
         io.in(socket.id).socketsJoin(matchid);
         const curGame = games[matchid];
         io.to(socket.id).emit("initialize-prev-moves", {
-            history: curGame.game.history(),
+            history: curGame.game.history(), 
             startedAt: curGame.startedAt,
             moveTime: [...curGame.time, moment().toDate()],
             curTime: moment().toDate(),
@@ -126,7 +126,7 @@ io.on("connection", (socket: any) => {
     });
 
     // Listen for the "disconnect" event and log it
-    socket.on("disconnect", () => {
+    socket.on("disconnect", () => { 
         console.log("A user disconnected");
     });
 });
