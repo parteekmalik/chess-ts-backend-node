@@ -1,18 +1,18 @@
 import express from "express";
 import { Chess, PieceSymbol } from "chess.js";
 
-const live = express.Router();
-live.use(express.json());
+const validMovesR = express.Router();
+validMovesR.use(express.json());
 
 let chesMatches: { [key: string]: Chess } = { "123": new Chess() };
 
-live.get("/:id", (req, res) => {
+validMovesR.get("/:id", (req, res) => {
   const { id } = req.params;
   console.log("get",id);
   res.status(200);
   res.json(chesMatches[id].history());
 });
-live.post("/:id", (req, res) => {
+validMovesR.post("/:id", (req, res) => {
   const { id } = req.params;
   const { from, to } = req.body;
   console.log(from, to);
@@ -30,4 +30,4 @@ live.post("/:id", (req, res) => {
   }
 });
 
-export default live;
+export default validMovesR;
