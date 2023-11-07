@@ -55,7 +55,7 @@ let games: {
         stats: {
             isover: false,
             winner: "still playing",
-            reason: "still playing",
+            reason: "",
         },
     },
 };
@@ -68,41 +68,38 @@ io.on("connection", (socket: any) => {
     // Listen for the "message" event and broadcast it to other sockets
     socket.on("message", (msg: any) => {
         const { from, to } = msg;
-        console.log("Message received from : " + socket.id + " -> " + from + to);
+        console.log("Message received from : " + socket.id + " -> " + JSON.stringify(msg, null, 2));
         const { userid, matchid } = socketidtouserandmatchid[socket.id];
         console.log(userid, matchid);
         const { players, game } = games[matchid];
         console.log(game.turn());
         console.log(players[game.turn()], userid);
         if (players[game.turn()] === userid) {
+            const curTime = moment().toDate();
             try {
                 game.move({ from, to });
-                games[matchid].time.push(moment().toDate());
-                if (game.isDraw()) {
-                    games[matchid].stats = { isover: true, winner: "draw", reason: "repetation" };
-                    io.to("12345").emit("game-over-byMove", {
-                        move: game.history()[game.history().length - 1],
-                        time: games[matchid].time[games[matchid].time.length - 1],
-                        stats: games[matchid].stats,
-                    });
-                } else if (game.isCheckmate()) {
-                    games[matchid].stats = { isover: true, winner: game.history().length % 2 == 1 ? "w" : "b", reason: "checkmate" };
-                    io.to("12345").emit("game-over-byMove", {
-                        move: game.history()[game.history().length - 1],
-                        time: games[matchid].time[games[matchid].time.length - 1],
+                games[matchid].time.push(curTime);
+                const payload = { move: game.history(), time: games[matchid].time };
+                if (game.isDraw() || game.isCheckmate()) {
+                    games[matchid].stats = game.isDraw()
+                        ? { isover: true, winner: "draw", reason: "repetation" }
+                        : { isover: true, winner: game.history().length % 2 == 1 ? "w" : "b", reason: "checkmate" };
+                    io.to("12345").emit("message-rcv", {
+                        ...payload,
                         stats: games[matchid].stats,
                     });
                 } else {
-                    io.to("12345").emit("message-rcv", {
-                        move: game.history()[game.history().length - 1],
-                        time: games[matchid].time[games[matchid].time.length - 1],
-                    });
+                    io.to("12345").emit("message-rcv", payload);
                 }
             } catch {
                 try {
                     game.move({ from, to, promotion: "q" as PieceSymbol });
-                    games[matchid].time.push(moment().toDate());
-                    io.to("12345").emit("message-rcv", { move: game.history()[game.history().length - 1], time: moment().toDate() });
+
+                    games[matchid].time.push(curTime);
+                    io.to("12345").emit("message-rcv", {
+                        move: game.history(),
+                        time: games[matchid].time,
+                    });
                 } catch {
                     console.log("wrong move");
                 }
@@ -110,23 +107,23 @@ io.on("connection", (socket: any) => {
         }
     });
     socket.on("connectwithuserid", (data: any) => {
+        console.log("connectwithuserid", data);
+
         const { userid, matchid } = data;
         useridwithsocket[userid] = socket.id;
         socketidtouserandmatchid[socket.id] = { userid, matchid };
         io.in(socket.id).socketsJoin(matchid);
         const curGame = games[matchid];
         io.to(socket.id).emit("initialize-prev-moves", {
-            history: curGame.game.history(), 
-            startedAt: curGame.startedAt,
-            moveTime: [...curGame.time, moment().toDate()],
-            curTime: moment().toDate(),
+            history: curGame.game.history(),
+            moveTime: [...curGame.time],
             stats: curGame.stats,
         });
-        console.log("connectwithuserid", userid);
+        console.log("initialize-prev-moves");
     });
 
     // Listen for the "disconnect" event and log it
-    socket.on("disconnect", () => { 
+    socket.on("disconnect", () => {
         console.log("A user disconnected");
     });
 });
@@ -145,7 +142,7 @@ server.listen(3001, () => {
 //   if (!newgame.isGameOver()) {
 //     const moves = newgame.moves();
 //     const move = moves[Math.floor(Math.random() * moves.length)];
-//     newgame.move(move); 
+//     newgame.move(move);
 //     setGame(newgame);
 //   }
 // };
