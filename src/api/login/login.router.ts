@@ -24,7 +24,7 @@ const getGame = async (gameid: any, response: any) => {
 
         if (res.rows.length === 1) response.status(200).json(res.rows[0]);
         else response.status(401).json("Not Found");
-    } catch (err) {
+    } catch (err) { 
         response.status(401).json("Not Found");
         console.log(err);
     }

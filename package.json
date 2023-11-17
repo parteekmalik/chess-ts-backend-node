@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "ts-node src/index.ts src/index1.ts",
-    "start:server1": "nodemon --exec ts-node src/index.ts",
+    "start:server1": "nodemon --exec ts-node src/api/server.ts",
     "start:server2": "nodemon --exec ts-node src/index1.ts",
     "dev": "concurrently \"npm run start:server1\" \"npm run start:server2\"",
     "build": "tsc",

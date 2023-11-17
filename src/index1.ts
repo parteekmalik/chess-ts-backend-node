@@ -14,8 +14,6 @@ app.use(cors({ origin: '*' }));
 
 const server = http.createServer(app);
 
-app.use("/getTime", getTime);
-
 app.use("/new",New);
 
 app.use("/live",live);
