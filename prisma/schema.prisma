@@ -18,15 +18,20 @@ model profile {
 }
 
 model match {
-  match_id      Int      @id @default(autoincrement())
-  board         String
-  created_at    String
-  moves_history String[]
-  winner        String?
-  reason        String?
-  white         Int
-  black         Int
-  game_type     Json
+  match_id   Int      @id @default(autoincrement())
+  position   String   @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  started_at String
+  history    String[] @default([])
+  reason     String   @default("")
+  players    Json
+  game_type  Json
+  time       String[] @default([])
+}
+model watingplayer{
+  userid Int @unique
+  game_type Json
+  time String
+  
 }
 
 model users {

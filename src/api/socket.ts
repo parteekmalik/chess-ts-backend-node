@@ -1,8 +1,26 @@
-import { Chess, PieceSymbol } from "chess.js";
+import { Chess, DEFAULT_POSITION, PieceSymbol } from "chess.js";
 import { Server as HttpServer } from "http";
+import { lastIndexOf } from "lodash";
 import moment from "moment";
 import { Socket, Server } from "socket.io";
 import { v4 } from "uuid";
+import { getLastElement } from "../Utils";
+
+import { Pool } from "pg";
+const path = require("path");
+
+require("dotenv").config({
+    override: true,
+    path: path.join(path.join(__dirname, "../.."), ".env"),
+});
+
+const pool = new Pool({
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: 5432,
+});
 
 export class ServerSocket {
     public static instance: ServerSocket;
@@ -11,28 +29,28 @@ export class ServerSocket {
     /** Master list of all connected users */
     public users: { [uid: string]: string };
     /** Master list of all matches */
-    public matches: {
-        [matchid: string]: {
-            players: { [uid: string]: string };
-            game: Chess;
-            time: number[];
-            startedAt: number;
-            stats: { isover: boolean; reason: string; winner: string };
-            gameType: { baseTime: number; incrementTime: number };
-        };
-    } = {
-        "12345": {
-            players: { w: "1", b: "2" },
-            startedAt: moment().toDate().getTime(),
-            game: new Chess(),
-            time: [moment().toDate().getTime()],
-            stats: {
-                isover: false,
-                winner: "",
-                reason: "",
-            },
-            gameType: { baseTime: 10 * 60000, incrementTime: 0 },
-        },
+    getMatch = async (payload: { match_id: string }) => {
+        try {
+            const { match_id } = payload;
+            const res = await pool.query('SELECT * FROM "match" WHERE match_id = $1', [Number(match_id)]);
+
+            if (res.rows.length === 1) return res.rows[0];
+            else console.info("Not Found");
+        } catch (err) {
+            console.log(err);
+        }
+    };
+    updateMatch = async (payload: { match_id: string; position: string; move: string; time: Date }) => {
+        try {
+            const { match_id, position, move, time } = payload;
+            const res = await pool.query(
+                'UPDATE "match" SET ' + "position = $2, history = array_append(history,$3), time = array_append(time,$4)" + " WHERE match_id = $1",
+                [Number(match_id), position, move, time]
+            );
+            console.info("updateMatch ->", res);
+        } catch (err) {
+            console.log(err);
+        }
     };
     /**  */
     public socketidtouserandmatchid: { [sockekid: string]: { uid: string; matchid: string } } = {};
@@ -72,19 +90,33 @@ export class ServerSocket {
         const OnHandshake = (payload: { uid: string; matchid: string }) => {
             const { uid, matchid } = payload;
             if (!uid || !matchid) return;
+
             this.users[uid] = socket.id;
             this.socketidtouserandmatchid[socket.id] = { uid, matchid };
             this.io.in(socket.id).socketsJoin(matchid);
-            const curGame = this.matches[matchid];
-            this.SendMessage("recieved_matchdetails", socket.id, {
-                stats: curGame.stats,
-                whitePlayerId: curGame.players["w"],
-                blackPlayerId: curGame.players["b"],
-                gameType: curGame.gameType,
-                moves: curGame.game.history(),
-                movesTime: curGame.time,
-                startedAt: curGame.startedAt,
-            });
+
+            // const curGameDetails = this.matches[matchid];
+            this.getMatch({ match_id: matchid }).then(
+                (curGameDetails: {
+                    reason: string;
+                    players: { [uid: string]: string };
+                    game_type: { baseTime: number; incrementTime: number };
+                    started_at: string;
+                    time: string[];
+                    history: string[];
+                }) => {
+                    console.info(curGameDetails);
+                    this.SendMessage("recieved_matchdetails", socket.id, {
+                        stats: curGameDetails.reason,
+                        whitePlayerId: curGameDetails.players["w"],
+                        blackPlayerId: curGameDetails.players["b"],
+                        gameType: curGameDetails.game_type,
+                        moves: curGameDetails.history,
+                        movesTime: curGameDetails.time,
+                        startedAt: curGameDetails.started_at,
+                    });
+                }
+            );
         };
         const OnRecieveMove = (payload: string | { from: string; to: string; promotion?: string | undefined }) => {
             console.info("Message received from " + socket.id);
@@ -93,36 +125,37 @@ export class ServerSocket {
 
             const { uid, matchid } = this.socketidtouserandmatchid[socket.id];
             console.log(uid, matchid);
-            const curGame = this.matches[matchid];
-            console.log(curGame.game.turn());
-            console.log(curGame.players[curGame.game.turn()], uid);
 
-            if (curGame.players[curGame.game.turn()] === uid) {
-                const curTime = moment().toDate().getTime();
-                try {
-                    curGame.game.move(payload);
-                    this.matches[matchid].time.push(curTime);
-                    this.SendMessage("recieved_move", matchid, {
-                        move: curGame.game.history()[curGame.game.history().length - 1],
-                        time: curTime,
-                    });
-                } catch {
+            const curGameDetails = this.getMatch({ match_id: matchid }).then((curGameDetails) => {
+                console.log(curGameDetails);
+                const matchGame = new Chess(curGameDetails.position);
+
+                console.log(matchGame.turn());
+                console.log(curGameDetails.players[matchGame.turn()], uid);
+
+                if (curGameDetails.players[matchGame.turn()] === uid) {
+                    const curTime = moment().toDate();
                     try {
-                        curGame.game.move({
-                            ...(payload as { from: string; to: string; promotion?: string | undefined }),
-                            promotion: "q" as PieceSymbol,
-                        });
-
-                        this.matches[matchid].time.push(curTime);
+                        matchGame.move(payload);
+                    } catch {
+                        try {
+                            matchGame.move({
+                                ...(payload as { from: string; to: string; promotion?: string | undefined }),
+                                promotion: "q" as PieceSymbol,
+                            });
+                        } catch {
+                            console.log("wrong move");
+                        }
+                    }
+                    if (matchGame.history().length) {
+                        this.updateMatch({ match_id: matchid, move: matchGame.history()[0], time: curTime, position: matchGame.fen() });
                         this.SendMessage("recieved_move", matchid, {
-                            move: curGame.game.history()[curGame.game.history().length - 1],
+                            move: matchGame.history()[0],
                             time: curTime,
                         });
-                    } catch {
-                        console.log("wrong move");
                     }
                 }
-            }
+            });
         };
     };
 

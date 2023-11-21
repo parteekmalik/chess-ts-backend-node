@@ -20,43 +20,30 @@ const pool = new Pool({
 const New = express.Router();
 New.use(express.json());
 
-const getGame = async (
-    game: {
-        board: string;
-        white: any;
-        black: string;
-        gameType: any;
-        createdAt: string;
-    },
-    response: any
-) => {
-    try {
-        const { createdAt, board, white, black, gameType } = game;
-        const res = await pool.query("INSERT INTO \"Match\" (board, created_at, white, black, game_type) VALUES ($1, $2, $3, $4, $5) RETURNING *", [
-            board,
-            createdAt,
-            white,
-            black,
-            gameType,
-        ]);
+const createMatchQuerry = 'INSERT INTO "match" ( started_at, players, game_type, time) VALUES ($1, $2, $3, $4) RETURNING *';
 
-        // if (res.rows.length === 1) response.status(200).json(res.rows[0]);
-        // else response.status(401).json("Not Found");
-        console.log(res.rows);
-        response.status(200).json(res.rows);
+const getGame = async (game: { white: any; black: string; gameType: any; createdAt: Date; time: Date[] }) => {
+    try {
+        const { createdAt, white, black, gameType, time } = game;
+        const res = await pool.query(createMatchQuerry, [createdAt, { w: white, b: black }, gameType, time]);
+
+        return res.rows[0];
     } catch (err) {
-        response.status(401).json(err);
+        // response.status(401).json(err);
         console.log(err);
+        return err;
     }
 };
 
 New.post("/", (req, res) => {
     console.log(req.body);
     const gameid = 12345;
-    const payload = { createdAt:moment().format(), board: DEFAULT_POSITION, white: req.body.userid, black: "2", gameType: req.body.gameType };
-    getGame(payload, res);
-    // res.status(200);
-    // res.json(payload);
+    const curTime = moment().toDate();
+    const payload = { createdAt: curTime, time: [curTime], white: req.body.userid, black: "2", gameType: req.body.gameType };
+    getGame(payload).then((data) => {
+        res.status(200).json(data);
+        console.log("then -> ", data);
+    });
 });
 
 export default New;
