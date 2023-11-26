@@ -14,7 +14,8 @@ model profile {
   user_id       Int     @id @default(autoincrement())
   email         String  @unique
   name          String?
-  match_history Int
+  match_history Int[]
+  live_match    Int     @default(-1)
 }
 
 model match {
@@ -27,15 +28,23 @@ model match {
   game_type  Json
   time       String[] @default([])
 }
-model watingplayer{
-  userid Int @unique
-  game_type Json
-  time String
-  
+
+model watingplayer {
+  userid        Int     @unique
+  basetime      Int
+  incrementtime Int
+  time          String
+  match_id      Int     @default(-1)
+  is_guest      Boolean
 }
 
 model users {
   user_name String @unique
   password  String
   userid    Int    @unique @default(autoincrement())
+}
+
+model gest_users {
+  user_id   Int    @unique @default(autoincrement())
+  user_name String @unique
 }

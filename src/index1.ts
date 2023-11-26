@@ -7,6 +7,7 @@ import New from "./api/new/new.router";
 import live from "./api/live/live.router";
 import login from "./api/login/login.router";
 import register from "./api/register/register.router";
+import getGuestId from "./api/getGuestId/getGuestId.router";
 
 const app = express();
 
@@ -21,6 +22,8 @@ app.use("/live",live);
 app.use("/login",login);
 
 app.use("/register",register);
+
+app.use("/getGuestId",getGuestId);
 
 server.listen(3002, () => {
     console.log("Server listening on port 3002");

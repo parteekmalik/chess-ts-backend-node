@@ -4,23 +4,10 @@ import { lastIndexOf } from "lodash";
 import moment from "moment";
 import { Socket, Server } from "socket.io";
 import { v4 } from "uuid";
-import { getLastElement } from "../Utils";
-
+import { getLastElement, poolConfg } from "../Utils";
 import { Pool } from "pg";
-const path = require("path");
 
-require("dotenv").config({
-    override: true,
-    path: path.join(path.join(__dirname, "../.."), ".env"),
-});
-
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: 5432,
-});
+const pool = new Pool(poolConfg);
 
 export class ServerSocket {
     public static instance: ServerSocket;

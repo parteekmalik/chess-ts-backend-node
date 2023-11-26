@@ -2,20 +2,10 @@ import { Chess } from "chess.js";
 import moment from "moment";
 import express from "express";
 import { Pool } from "pg";
-const path = require("path");
+import { poolConfg } from "../../Utils";
 
-require("dotenv").config({
-    override: true,
-    path: path.join(path.join(__dirname, "../../.."), ".env"),
-});
+const pool = new Pool(poolConfg);
 
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: 5432,
-});
 
 const getGame = async (gameid: { username:string, password:string }, response: any) => {
     try {

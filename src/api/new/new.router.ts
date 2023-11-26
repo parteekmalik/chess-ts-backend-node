@@ -2,32 +2,42 @@ import { Chess, DEFAULT_POSITION } from "chess.js";
 import express from "express";
 import moment from "moment";
 import { Pool } from "pg";
-const path = require("path");
+import { poolConfg } from "../../Utils";
 
-require("dotenv").config({
-    override: true,
-    path: path.join(path.join(__dirname, "../../.."), ".env"),
-});
-
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: 5432,
-});
+const pool = new Pool(poolConfg);
 
 const New = express.Router();
 New.use(express.json());
 
-const createMatchQuerry = 'INSERT INTO "match" ( started_at, players, game_type, time) VALUES ($1, $2, $3, $4) RETURNING *';
-
-const getGame = async (game: { white: any; black: string; gameType: any; createdAt: Date; time: Date[] }) => {
+const getMatch = 'SELECT * FROM "match" WHERE match_id = $1';
+const pushMatch = 'INSERT INTO "watingplayer" (time,userid,basetime,incrementtime) VALUES ($1,$2,$3,$4) RETURNING *';
+// const getUpdate = 'SELECT * FROM "watingplayer" WHERE basetime = $1 incrementtime = $2';
+const getUpdate = 'SELECT * FROM "profile" WHERE user_id = $1';
+const getGame = async (game: { userid: string; gameType: { baseTime: number; incrementTime: number }; createdAt: Date }) => {
     try {
-        const { createdAt, white, black, gameType, time } = game;
-        const res = await pool.query(createMatchQuerry, [createdAt, { w: white, b: black }, gameType, time]);
+        const { createdAt, userid, gameType } = game;
+        // const res = await pool.query(createMatchQuerry, [createdAt, { w: white, b: black }, gameType, time]);
+        // const res = await pool.query(getWatingPlayers, [gameType.baseTime, gameType.incrementTime]);
+        const respo = await pool.query(pushMatch, [moment().toDate(), userid, gameType.baseTime, gameType.incrementTime]);
+        console.info("insert waitingplayers >", respo.rows);
+        const res = await new Promise((resolve, reject) => {
+            const intervalId = setInterval(async () => {
+                try {
+                    console.log("inside loop ->");
+                    const res = (await pool.query(getUpdate, [userid])).rows[0].live_match;
+                    console.log("inside loop waiting for matchmaking -> ", moment().toDate().getDate(), ", res -> ", res);
 
-        return res.rows[0];
+                    if (res !== -1) {
+                        clearInterval(intervalId); // Stop the interval
+                        resolve(res); // Resolve the promise with the result
+                    }
+                } catch (error) {
+                    console.log(error);
+                }
+            }, 100);
+        });
+
+        return (await pool.query(getMatch, [res])).rows[0];
     } catch (err) {
         // response.status(401).json(err);
         console.log(err);
@@ -37,9 +47,7 @@ const getGame = async (game: { white: any; black: string; gameType: any; created
 
 New.post("/", (req, res) => {
     console.log(req.body);
-    const gameid = 12345;
-    const curTime = moment().toDate();
-    const payload = { createdAt: curTime, time: [curTime], white: req.body.userid, black: "2", gameType: req.body.gameType };
+    const payload = { createdAt: moment().toDate(), userid: req.body.userid, gameType: req.body.gameType };
     getGame(payload).then((data) => {
         res.status(200).json(data);
         console.log("then -> ", data);
