@@ -64,33 +64,41 @@ const test = () => {
 };
 const main = () => {
     types.map(async (payload) => {
-        // console.log("matchMakingServer loop ->");
-        let players = (await pool.query(createQuerry("SELECT *", "watingplayer", { basetime: payload[0], incrementtime: payload[1] }), payload)).rows;
-        // console.info("select playerswaiting ->", players);
+        try {
+            // console.log("matchMakingServer loop ->");
+            let players = (
+                await pool.query(createQuerry("SELECT *", "watingplayer", { base_time: payload[0], increment_time: payload[1], match_id: -1 }), [
+                    ...payload,
+                    -1,
+                ])
+            ).rows;
+            // console.info("select playerswaiting ->", players);
 
-        for (let i = 0; i < Math.floor(players.length / 2) * 2; i += 2) {
-            console.log("i -> ", i);
-            const time = moment().toDate();
-            let res = await pool.query(createMatch, [
-                time,
-                { w: players[i].userid, b: players[i + 1].userid },
-                { baseTime: payload[0], incrementTime: payload[1] },
-                [time],
-            ]);
-            // console.info("inserted new math -> ", res.rows);
-            await pool.query(createQuerry("DELETE", "watingplayer", { userid: res.rows[0].players.w }), [res.rows[0].players.w]);
-            await pool.query(createQuerry("DELETE", "watingplayer", { userid: res.rows[0].players.b }), [res.rows[0].players.b]);
-            // console.info("delete matchMakingReq res ->");
+            for (let i = 0; i < Math.floor(players.length / 2) * 2; i += 2) {
+                console.log("i -> ", i);
+                const time = moment().toDate();
+                console.info(players[i].is_guest, players[i + 1].is_guest, players[i].is_guest !== players[i + 1].is_guest);
+                if (players[i].is_guest !== players[i + 1].is_guest) continue;
+                let res = await pool.query(createMatch, [
+                    time,
+                    { w: players[i].user_id, b: players[i + 1].user_id },
+                    { baseTime: payload[0], incrementTime: payload[1] },
+                    [time],
+                ]);
+                console.info("inserted new math -> ", res.rows);
 
-            await pool.query(createQuerry("UPDATE", "profile", { live_match: res.rows[0].match_id }, { user_id: res.rows[0].players.w }), [
-                res.rows[0].match_id,
-                res.rows[0].players.w,
-            ]);
-            await pool.query(createQuerry("UPDATE", "profile", { live_match: res.rows[0].match_id }, { user_id: res.rows[0].players.b }), [
-                res.rows[0].match_id,
-                res.rows[0].players.b,
-            ]);
-            // console.info("profile update with live_match -> ", res.rows);
+                await pool.query(createQuerry("UPDATE", "watingplayer", { match_id: res.rows[0].match_id }, { user_id: res.rows[0].players.w }), [
+                    res.rows[0].match_id,
+                    res.rows[0].players.w,
+                ]);
+                await pool.query(createQuerry("UPDATE", "watingplayer", { match_id: res.rows[0].match_id }, { user_id: res.rows[0].players.b }), [
+                    res.rows[0].match_id,
+                    res.rows[0].players.b,
+                ]);
+                // console.info("watingplayer update with live_match -> ", res.rows);
+            }
+        } catch (err) {
+            console.info(err);
         }
     });
 };

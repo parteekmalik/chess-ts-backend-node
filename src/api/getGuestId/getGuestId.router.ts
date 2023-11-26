@@ -13,8 +13,8 @@ getGuestId.get("/", async (req, res) => {
     const guestCount = Number((await pool.query('SELECT COUNT(*) FROM "gest_users"')).rows[0].count);
     const guestId = `Guest${guestCount + 1}`;
     pool.query(createQuerry("INSERT", "gest_users", { user_name: guestId }), [guestId]);
-    console.info(guestId);
-    res.send(guestId);
+    console.info("asigned guest id - >",guestId);
+    res.status(200).send(guestId); 
 });
 
 export default getGuestId;
