@@ -4,7 +4,8 @@
   "description": " A basic starter for an express.js API with Typescript",
   "main": "src/index.ts",
   "scripts": {
-    "start": "ts-node src/api/matchMaking.ts",
+    "start": "ts-node src/data.ts",
+    "querry": "ts-node src/api/querrymannuall.ts",
     "start:server1": "nodemon --exec ts-node src/api/server.ts",
     "start:server2": "nodemon --exec ts-node src/index1.ts",
     "start:server3": "nodemon --exec ts-node src/api/matchMaking.ts",
@@ -25,6 +26,7 @@
   "dependencies": {
     "chess.js": "^1.0.0-beta.6",
     "cors": "^2.8.5",
+    "csv-parser": "^3.0.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "lodash": "^4.17.21",

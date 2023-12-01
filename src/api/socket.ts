@@ -21,7 +21,7 @@ export class ServerSocket {
             const { match_id } = payload;
             const res = await pool.query('SELECT * FROM "match" WHERE match_id = $1', [Number(match_id)]);
 
-            if (res.rows.length === 1) return res.rows[0];
+            if (res.rows.length) return res.rows[0];
             else console.info("Not Found");
         } catch (err) {
             console.log(err);

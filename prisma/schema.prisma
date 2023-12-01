@@ -49,3 +49,13 @@ model gest_users {
   user_id   Int    @unique @default(autoincrement())
   user_name String @unique
 }
+
+model puzzles {
+  id              Int    @unique @default(autoincrement())
+  fen             String
+  moves           String
+  rating          String
+  rating_deviation String
+  themes          String
+  opening_tags     String
+}

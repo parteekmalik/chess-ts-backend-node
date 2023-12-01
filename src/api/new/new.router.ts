@@ -2,8 +2,7 @@ import { Chess, DEFAULT_POSITION } from "chess.js";
 import express from "express";
 import moment from "moment";
 import { Pool } from "pg";
-import { poolConfg } from "../../Utils";
-import { createQuerry } from "../matchMaking";
+import { createQuerry, poolConfg } from "../../Utils";
 
 const pool = new Pool(poolConfg);
 

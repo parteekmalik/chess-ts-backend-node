@@ -1,6 +1,6 @@
 import moment from "moment";
 import { Pool } from "pg";
-import { poolConfg } from "../Utils";
+import { createQuerry, poolConfg } from "../Utils";
 
 const pool = new Pool(poolConfg);
 
@@ -11,44 +11,7 @@ const types = [
 ];
 const createMatch = 'INSERT INTO "match" ( started_at, players, game_type, time) VALUES ($1, $2, $3, $4) RETURNING *';
 console.log("matchMakingServer Running");
-type Tquerry = "INSERT" | "UPDATE" | "DELETE" | "SELECT *" | "SELECT";
-export const createQuerry = (type: Tquerry, db: string, data: Object, where?: Object): string => {
-    const select_delete = (ans: string, data: Object, seprate: string, prev: number) => {
-        Object.keys(data).map((key, i) => {
-            ans += key + " = $" + (i + 1 + prev) + seprate + " ";
-        });
-        return ans.slice(0, -1 * (seprate.length + 1)) + " ";
-    };
-    const insert = (ans: string, data: Object) => {
-        ans = "( ";
-        Object.keys(data).map((key) => {
-            ans += key + ", ";
-        });
-        ans = ans.slice(0, -2);
-        ans += ") VALUES ( ";
-        Object.keys(data).map((_, i) => {
-            ans += "$" + (i + 1) + ", ";
-        });
-        return ans.slice(0, -2) + ") RETURNING *";
-    };
-    const switches = (type: Tquerry): string => {
-        switch (type) {
-            case "SELECT *":
-                return type + " " + 'FROM "' + db + '" WHERE ' + select_delete("", data, " AND", 0);
-            case "DELETE":
-                return type + " " + 'FROM "' + db + '" WHERE ' + select_delete("", data, " AND", 0);
-            case "INSERT":
-                return type + " " + 'INTO "' + db + '" ' + insert("", data);
-            case "UPDATE":
-                let ans = type + " " + '"' + db + '" SET ' + select_delete("", data, ",", 0);
-                if (where) return select_delete(ans + "WHERE ", where, " AND", Object.keys(data).length);
-            default:
-                return "";
-        }
-    };
-    // console.log("querry -> ", switches(type));
-    return switches(type);
-};
+
 const test = () => {
     console.log(createQuerry("SELECT *", "watingplayer", { basetime: 60000 * 10, incrementtime: 0 }));
     console.log(createQuerry("DELETE", "watingplayer", { basetime: 60000 * 10, incrementtime: 0 }));

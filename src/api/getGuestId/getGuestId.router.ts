@@ -1,8 +1,7 @@
 import express from "express";
 import moment from "moment";
-import { createQuerry } from "../matchMaking";
 import { Pool } from "pg";
-import { poolConfg } from "../../Utils";
+import { createQuerry, poolConfg } from "../../Utils";
 
 const pool = new Pool(poolConfg);
 
