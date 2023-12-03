@@ -9,26 +9,36 @@ const pool = new Pool(poolConfg);
 const getpuzzles = express.Router();
 getpuzzles.use(express.json());
 
+const ratingsteps: number[] = Array.from({ length: 57 }, (_, index) => 400 + index * 50);
+let totalPuzzlesArrayId: number[][];
+(async () => {
+    totalPuzzlesArrayId = await Promise.all(
+        ratingsteps.map(async (rating) => {
+            const result = await pool.query('SELECT id FROM "puzzles" WHERE rating > $1 AND rating < $2', [rating - 25, rating + 25]);
+            return result.rows.map((d) => d.id as number);
+        })
+    );
+    console.log("totalPuzzles loaded ");
+})();
+
 getpuzzles.get("/", async (req, res) => {
-    const totalPuzzles = Number((await pool.query('SELECT COUNT(*) FROM "puzzles"')).rows[0].count);
-    console.log("totalPuzzles -> ", totalPuzzles);
-    const randomN = Math.floor(Math.random() * totalPuzzles);
-    const puzzle = (await pool.query('SELECT * FROM "puzzles" WHERE id = $1', [randomN])).rows[0];
-    console.info("puzzle sent  - >", puzzle);
-    const game = new Chess(puzzle.fen);
-    puzzle.moves.split(" ").map((move: string) => {
-        const payload = { from: move.substring(0, 2), to: move.substring(2, 4), promotion: move[4] };
-        console.log(move, payload);
-        game.move(payload);
+    let puzzleList: any = await Promise.all(
+        totalPuzzlesArrayId.map(async (data) => {
+            const randomId = data[Math.floor(Math.random() * data.length)];
+            const puzzle = await pool.query('SELECT * FROM "puzzles" WHERE id = $1', [randomId]);
+            return puzzle.rows[0];
+        })
+    );
+    const ans = puzzleList.map((puzzle: any) => {
+        const game = new Chess(puzzle.fen);
+        puzzle.moves.split(" ").map((move: string) => {
+            const payload = { from: move.substring(0, 2), to: move.substring(2, 4), promotion: move[4] };
+            game.move(payload);
+        });
+
+        return { ...puzzle, moves: game.history(), themes: puzzle.themes.split(" "), opening_tags: puzzle.opening_tags.split(" ") };
     });
-    puzzle.moves = game.history();
-
-    puzzle.themes = puzzle.themes.split(" ");
-    puzzle.opening_tags = puzzle.opening_tags.split(" ");
-    puzzle.rating = Number(puzzle.rating);
-    puzzle.rating_deviation = Number(puzzle.rating_deviation);
-
-    res.status(200).json(puzzle);
+    res.status(200).json(ans);
 });
 
 export default getpuzzles;
