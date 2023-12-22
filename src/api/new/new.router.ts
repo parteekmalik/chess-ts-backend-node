@@ -4,7 +4,9 @@ import moment from "moment";
 import { Pool } from "pg";
 import { createQuerry, poolConfg } from "../../Utils";
 
-const pool = new Pool(poolConfg);
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 const New = express.Router();
 New.use(express.json());
@@ -15,22 +17,45 @@ const getGame = async (game: { userid: string; gameType: { baseTime: number; inc
 
         let is_guest = false;
         if (userid.slice(0, 5) === "Guest") is_guest = true;
-        
-        const payload = { time: moment().toDate(), user_id: userid, base_time: gameType.baseTime, increment_time: gameType.incrementTime, is_guest };
-        const request_id = (await pool.query(createQuerry("INSERT", "watingplayer", payload), Object.values(payload))).rows[0].request_id;
-        console.info("insert waitingplayers >", request_id);
 
-        const match_id = await new Promise((resolve, reject) => {
+        // Create waiting player record
+        const waitingPlayer = await prisma.watingplayer.create({
+            data: {
+                time: moment().toDate(),
+                user_id: userid,
+                base_time: gameType.baseTime,
+                increment_time: gameType.incrementTime,
+                is_guest,
+            },
+        });
+
+        console.info("Inserted waitingplayers", waitingPlayer);
+
+        // Wait for matchmaking and retrieve match_id
+        const match_id = await new Promise<number>((resolve, reject) => {
             const intervalId = setInterval(async () => {
                 try {
-                    console.log("inside loop ->");
-                    const res = (await pool.query(createQuerry("SELECT *", "watingplayer", { request_id }), [request_id])).rows[0].match_id;
-                    console.log("inside loop waiting for matchmaking -> ", moment().toDate().getDate(), ", res -> ", res);
+                    console.log("Inside loop ->");
 
-                    if (res !== -1) {
-                        await pool.query(createQuerry("DELETE", "watingplayer", { request_id: request_id }), [request_id]);
-                        clearInterval(intervalId); // Stop the interval
-                        resolve(res); // Resolve the promise with the result
+                    const waitingPlayerResult = await prisma.watingplayer.findFirst({
+                        where: {
+                            request_id: waitingPlayer.request_id,
+                        },
+                    });
+
+                    console.log("Inside loop waiting for matchmaking -> ", moment().toDate().getDate(), ", res -> ", waitingPlayerResult);
+                    if (waitingPlayerResult !== null) {
+                        if (waitingPlayerResult?.match_id !== -1) {
+                            // Delete waiting player record
+                            await prisma.watingplayer.delete({
+                                where: {
+                                    request_id: waitingPlayer.request_id,
+                                },
+                            });
+
+                            clearInterval(intervalId); // Stop the interval
+                            resolve(waitingPlayerResult.match_id); // Resolve the promise with the result
+                        }
                     }
                 } catch (error) {
                     console.log(error);
@@ -38,10 +63,16 @@ const getGame = async (game: { userid: string; gameType: { baseTime: number; inc
             }, 100);
         });
 
-        return (await pool.query(createQuerry("SELECT *", "watingplayer", { match_id }), [match_id])).rows[0];
+        // Retrieve match data using match_id
+        const matchData = await prisma.match.findFirst({
+            where: {
+                match_id: match_id,
+            },
+        });
+
+        return matchData;
     } catch (err) {
         console.log(err);
-        return err;
     }
 };
 

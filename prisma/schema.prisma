@@ -19,23 +19,24 @@ model profile {
 }
 
 model match {
-  match_id   Int      @id @default(autoincrement())
-  position   String   @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-  started_at String
-  history    String[] @default([])
-  reason     String   @default("")
-  players    Json
-  game_type  Json
-  time       String[] @default([])
+  match_id     Int      @id @default(autoincrement())
+  position     String   @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
+  reason       String   @default("")
+  w            String
+  b            String
+  baseTime     Int
+  incrementTime Int
+  move_data    Json[]   @default([])
 }
 
 model watingplayer {
-  request_id     Int     @default(autoincrement())
-  user_id        String  @unique
+  request_id     Int      @unique @default(autoincrement())
+  user_id        String   @unique
   base_time      Int
   increment_time Int
-  time           String
-  match_id       Int     @default(-1)
+  time           DateTime @default(now()) @db.Timestamp(6)
+  match_id       Int      @default(-1)
   is_guest       Boolean
 }
 
@@ -51,11 +52,11 @@ model gest_users {
 }
 
 model puzzles {
-  id              Int    @unique @default(autoincrement())
-  fen             String
-  moves           String
-  rating          String
-  rating_deviation String
-  themes          String
+  id               Int      @unique @default(autoincrement())
+  fen              String
+  moves            String[]
+  rating           Int
+  rating_deviation Int
+  themes           String
   opening_tags     String
 }

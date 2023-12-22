@@ -7,7 +7,9 @@ import { v4 } from "uuid";
 import { getLastElement, poolConfg } from "../Utils";
 import { Pool } from "pg";
 
-const pool = new Pool(poolConfg);
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export class ServerSocket {
     public static instance: ServerSocket;
@@ -19,9 +21,13 @@ export class ServerSocket {
     getMatch = async (payload: { match_id: string }) => {
         try {
             const { match_id } = payload;
-            const res = await pool.query('SELECT * FROM "match" WHERE match_id = $1', [Number(match_id)]);
+            const res = await prisma.match.findFirst({
+                where: {
+                    match_id: Number(match_id),
+                },
+            });
 
-            if (res.rows.length) return res.rows[0];
+            if (res) return res;
             else console.info("Not Found");
         } catch (err) {
             console.log(err);
@@ -30,10 +36,16 @@ export class ServerSocket {
     updateMatch = async (payload: { match_id: string; position: string; move: string; time: Date }) => {
         try {
             const { match_id, position, move, time } = payload;
-            const res = await pool.query(
-                'UPDATE "match" SET ' + "position = $2, history = array_append(history,$3), time = array_append(time,$4)" + " WHERE match_id = $1",
-                [Number(match_id), position, move, time]
-            );
+            const res = await prisma.match.update({
+                where: {
+                    match_id: Number(match_id),
+                },
+                data: {
+                    position,
+                    move_data: { push: { move, time } },
+                },
+            });
+
             console.info("updateMatch ->", res);
         } catch (err) {
             console.log(err);
@@ -83,27 +95,23 @@ export class ServerSocket {
             this.io.in(socket.id).socketsJoin(matchid);
 
             // const curGameDetails = this.matches[matchid];
-            this.getMatch({ match_id: matchid }).then(
-                (curGameDetails: {
-                    reason: string;
-                    players: { [uid: string]: string };
-                    game_type: { baseTime: number; incrementTime: number };
-                    started_at: string;
-                    time: string[];
-                    history: string[];
-                }) => {
-                    console.info(curGameDetails);
+            this.getMatch({ match_id: matchid }).then((curGameDetails) => {
+                console.info(curGameDetails);
+                if (curGameDetails) {
+                    const { baseTime, incrementTime, move_data, createdAt, reason, w, b } = curGameDetails;
                     this.SendMessage("recieved_matchdetails", socket.id, {
-                        stats: curGameDetails.reason,
-                        whitePlayerId: curGameDetails.players["w"],
-                        blackPlayerId: curGameDetails.players["b"],
-                        gameType: curGameDetails.game_type,
-                        moves: curGameDetails.history,
-                        movesTime: curGameDetails.time,
-                        startedAt: curGameDetails.started_at,
+                        stats: reason,
+                        whitePlayerId: w,
+                        blackPlayerId: b,
+                        gameType: { baseTime, incrementTime },
+                        movesData: move_data,
+                        startedAt: createdAt,
                     });
-                }
-            );
+                } else
+                    this.SendMessage("recieved_matchdetails", socket.id, {
+                        error: "not found match",
+                    });
+            });
         };
         const OnRecieveMove = (payload: string | { from: string; to: string; promotion?: string | undefined }) => {
             console.info("Message received from " + socket.id);
@@ -115,31 +123,33 @@ export class ServerSocket {
 
             const curGameDetails = this.getMatch({ match_id: matchid }).then((curGameDetails) => {
                 console.log(curGameDetails);
-                const matchGame = new Chess(curGameDetails.position);
+                if (curGameDetails) {
+                    const matchGame = new Chess(curGameDetails.position);
 
-                console.log(matchGame.turn());
-                console.log(curGameDetails.players[matchGame.turn()], uid);
+                    console.log(matchGame.turn());
+                    console.log(curGameDetails[matchGame.turn()], uid);
 
-                if (curGameDetails.players[matchGame.turn()] === uid) {
-                    const curTime = moment().toDate();
-                    try {
-                        matchGame.move(payload);
-                    } catch {
+                    if (curGameDetails[matchGame.turn()] === uid) {
+                        const curTime = moment().toDate();
                         try {
-                            matchGame.move({
-                                ...(payload as { from: string; to: string; promotion?: string | undefined }),
-                                promotion: "q" as PieceSymbol,
-                            });
+                            matchGame.move(payload);
                         } catch {
-                            console.log("wrong move");
+                            try {
+                                matchGame.move({
+                                    ...(payload as { from: string; to: string; promotion?: string | undefined }),
+                                    promotion: "q" as PieceSymbol,
+                                });
+                            } catch {
+                                console.log("wrong move");
+                            }
                         }
-                    }
-                    if (matchGame.history().length) {
-                        this.updateMatch({ match_id: matchid, move: matchGame.history()[0], time: curTime, position: matchGame.fen() });
-                        this.SendMessage("recieved_move", matchid, {
-                            move: matchGame.history()[0],
-                            time: curTime,
-                        });
+                        if (matchGame.history().length) {
+                            this.updateMatch({ match_id: matchid, move: matchGame.history()[0], time: curTime, position: matchGame.fen() });
+                            this.SendMessage("recieved_move", matchid, {
+                                move: matchGame.history()[0],
+                                time: curTime,
+                            });
+                        }
                     }
                 }
             });

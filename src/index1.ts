@@ -26,7 +26,7 @@ app.use("/register",register);
 
 app.use("/getGuestId",getGuestId);
 
-app.use("/getpuzzles",getpuzzles);
+// app.use("/getpuzzles",getpuzzles);
 
 server.listen(3002, () => {
     console.log("Server listening on port 3002");

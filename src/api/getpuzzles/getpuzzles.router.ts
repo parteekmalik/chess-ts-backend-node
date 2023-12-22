@@ -4,7 +4,9 @@ import { Pool } from "pg";
 import { createQuerry, poolConfg } from "../../Utils";
 import { Chess } from "chess.js";
 
-const pool = new Pool(poolConfg);
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 const getpuzzles = express.Router();
 getpuzzles.use(express.json());
@@ -14,8 +16,18 @@ let totalPuzzlesArrayId: number[][];
 (async () => {
     totalPuzzlesArrayId = await Promise.all(
         ratingsteps.map(async (rating) => {
-            const result = await pool.query('SELECT id FROM "puzzles" WHERE rating > $1 AND rating < $2', [rating - 25, rating + 25]);
-            return result.rows.map((d) => d.id as number);
+            const result = await prisma.puzzles.findMany({
+                where: {
+                    rating: {
+                        gt: rating - 25,
+                        lt: rating + 25,
+                    },
+                },
+                select: {
+                    id: true,
+                },
+            });
+            return result.map((d) => d.id as number);
         })
     );
     console.log("totalPuzzles loaded ");
@@ -25,8 +37,12 @@ getpuzzles.get("/", async (req, res) => {
     let puzzleList: any = await Promise.all(
         totalPuzzlesArrayId.map(async (data) => {
             const randomId = data[Math.floor(Math.random() * data.length)];
-            const puzzle = await pool.query('SELECT * FROM "puzzles" WHERE id = $1', [randomId]);
-            return puzzle.rows[0];
+            const puzzle = await prisma.puzzles.findMany({
+                where: {
+                    id: randomId,
+                },
+            });
+            return puzzle;
         })
     );
     const ans = puzzleList.map((puzzle: any) => {

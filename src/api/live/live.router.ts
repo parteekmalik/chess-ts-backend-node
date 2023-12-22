@@ -4,46 +4,20 @@ import express from "express";
 import { Pool } from "pg";
 const path = require("path");
 
-require("dotenv").config({
-    override: true,
-    path: path.join(path.join(__dirname, "../../.."), ".env"),
-});
+import { PrismaClient } from "@prisma/client";
 
-const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: 5432,
-});
+const prisma = new PrismaClient();
 
-let games: {
-    [key: string]: {
-        players: { [key: string]: string };
-        game: Chess;
-        time: Date[];
-        startedAt: Date;
-        stats: { isover: boolean; reason: string; winner: string };
-    };
-} = {
-    "12345": {
-        players: { w: "1", b: "2" },
-        startedAt: moment().toDate(),
-        game: new Chess(),
-        time: [moment().toDate()],
-        stats: {
-            isover: false,
-            winner: "still playing",
-            reason: "still playing",
-        },
-    },
-};
-
-const getGame = async (gameid: string, response:any) => {
+const getGame = async (gameid: string, response: any) => {
     try {
-        const res = await pool.query('SELECT * FROM "Match" WHERE id = $1', [gameid]);
+        // const res = await pool.query('SELECT * FROM "Match" WHERE id = $1', [gameid]);
+        const res = await prisma.match.findFirst({
+            where: {
+                match_id: Number(gameid),
+            },
+        });
 
-        if (res.rows.length === 1) response.status(200).json(res.rows[0]);
+        if (res) response.status(200).json(res);
         else response.status(401).json("Not Found");
     } catch (err) {
         response.status(401).json("Not Found");
