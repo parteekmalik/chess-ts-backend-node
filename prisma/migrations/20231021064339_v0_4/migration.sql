@@ -13,7 +13,7 @@ DROP TABLE "Maches";
 -- CreateTable
 CREATE TABLE "Match" (
     "id" SERIAL NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL,
+    "startedAt" TIMESTAMP(3) NOT NULL,
     "movesHistory" TEXT[],
     "winner" TEXT NOT NULL,
     "reason" TEXT NOT NULL,

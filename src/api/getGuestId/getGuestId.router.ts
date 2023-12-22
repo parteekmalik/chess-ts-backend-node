@@ -13,9 +13,9 @@ getGuestId.use(express.json());
 getGuestId.get("/", async (req, res) => {
     const guestCount = await prisma.gest_users.count();
     const guestId = `Guest${guestCount + 1}`;
-    prisma.gest_users.create({
+    await prisma.gest_users.create({
         data: {
-            user_name: guestId,
+            userName: guestId,
         },
     });
     console.info("asigned guest id - >", guestId);

@@ -13,7 +13,7 @@ const getGame = async (gameid: string, response: any) => {
         // const res = await pool.query('SELECT * FROM "Match" WHERE id = $1', [gameid]);
         const res = await prisma.match.findFirst({
             where: {
-                match_id: Number(gameid),
+                matchId: Number(gameid),
             },
         });
 

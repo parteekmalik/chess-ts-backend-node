@@ -11,52 +11,53 @@ datasource db {
 }
 
 model profile {
-  user_id       Int    @id @default(autoincrement())
-  email         String @unique
-  user_name     String @unique
-  match_history Int[]
-  live_match    Int    @default(-1)
+  userId       Int    @id @default(autoincrement())
+  email        String @unique
+  userName     String @unique
+  matchHistory Int[]
+  liveMatch    Int    @default(-1)
 }
 
 model match {
-  match_id     Int      @id @default(autoincrement())
-  position     String   @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-  createdAt    DateTime @default(now()) @db.Timestamp(6)
-  reason       String   @default("")
-  w            String
-  b            String
-  baseTime     Int
+  matchId       Int        @id @default(autoincrement())
+  position      String     @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  startedAt     DateTime   @default(now()) @db.Timestamp(6)
+  stats         String     @default("")
+  whiteId       String
+  blackId       String
+  baseTime      Int
   incrementTime Int
-  move_data    Json[]   @default([])
+  moves         String[]   @default([])
+  time          DateTime[] @default([])
 }
 
 model watingplayer {
-  request_id     Int      @unique @default(autoincrement())
-  user_id        String   @unique
-  base_time      Int
-  increment_time Int
-  time           DateTime @default(now()) @db.Timestamp(6)
-  match_id       Int      @default(-1)
-  is_guest       Boolean
+  requestId     Int      @unique @default(autoincrement())
+  userId        String   @unique
+  baseTime      Int
+  incrementTime Int
+  time          DateTime @default(now()) @db.Timestamp(6)
+  matchId       Int      @default(-1)
+  isGuest       Boolean
 }
 
 model users {
-  user_name String @unique
-  password  String
-  user_id   Int    @unique @default(autoincrement())
+  userName String @unique
+  password String
+  userId   Int    @unique @default(autoincrement())
 }
 
 model gest_users {
-  user_id   Int    @unique @default(autoincrement())
-  user_name String @unique
+  userId   Int    @unique @default(autoincrement())
+  userName String @unique
 }
 
 model puzzles {
-  id               Int      @unique @default(autoincrement())
-  fen              String
-  moves            String[]
-  rating           Int
-  rating_deviation Int
-  themes           String
-  opening_tags     String
+  id              Int      @unique @default(autoincrement())
+  fen             String
+  moves           String[]
+  rating          Int
+  ratingDeviation Int
+  themes          String
+  openingTags     String
 }

@@ -13,7 +13,7 @@ DROP TABLE "Post";
 -- CreateTable
 CREATE TABLE "History" (
     "id" SERIAL NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL,
+    "startedAt" TIMESTAMP(3) NOT NULL,
     "movesHistory" TEXT[],
     "winner" TEXT NOT NULL,
     "reason" TEXT NOT NULL,

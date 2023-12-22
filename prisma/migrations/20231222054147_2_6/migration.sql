@@ -7,7 +7,7 @@
 */
 -- AlterTable
 ALTER TABLE "match" DROP COLUMN "started_at",
-ADD COLUMN     "createdAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ADD COLUMN     "startedAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
 -- AlterTable
 ALTER TABLE "watingplayer" DROP COLUMN "time",

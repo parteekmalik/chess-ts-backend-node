@@ -14,7 +14,7 @@ const getGame = async (gameid: { username: string; password: string }, response:
         const { username, password } = gameid;
         const res = await prisma.users.findFirst({
             where: {
-                user_name: username,
+                userName: username,
             },
         });
 
@@ -22,7 +22,7 @@ const getGame = async (gameid: { username: string; password: string }, response:
         else {
             const res = await prisma.users.create({
                 data: {
-                    user_name: username,
+                    userName: username,
                     password: password,
                 },
             });

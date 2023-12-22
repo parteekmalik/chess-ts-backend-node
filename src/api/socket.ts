@@ -15,43 +15,6 @@ export class ServerSocket {
     public static instance: ServerSocket;
     public io: Server;
 
-    /** Master list of all connected users */
-    public users: { [uid: string]: string };
-    /** Master list of all matches */
-    getMatch = async (payload: { match_id: string }) => {
-        try {
-            const { match_id } = payload;
-            const res = await prisma.match.findFirst({
-                where: {
-                    match_id: Number(match_id),
-                },
-            });
-
-            if (res) return res;
-            else console.info("Not Found");
-        } catch (err) {
-            console.log(err);
-        }
-    };
-    updateMatch = async (payload: { match_id: string; position: string; move: string; time: Date }) => {
-        try {
-            const { match_id, position, move, time } = payload;
-            const res = await prisma.match.update({
-                where: {
-                    match_id: Number(match_id),
-                },
-                data: {
-                    position,
-                    move_data: { push: { move, time } },
-                },
-            });
-
-            console.info("updateMatch ->", res);
-        } catch (err) {
-            console.log(err);
-        }
-    };
-    /**  */
     public socketidtouserandmatchid: { [sockekid: string]: { uid: string; matchid: string } } = {};
 
     constructor(server: HttpServer) {
@@ -70,22 +33,28 @@ export class ServerSocket {
         this.io.on("connect", this.StartListeners);
     }
 
+    /** Master list of all connected users */
+    public users: { [uid: string]: string };
+    /** Master list of all matches */
+
     StartListeners = (socket: Socket) => {
         console.info("Message received from " + socket.id);
 
         socket.on("move_sent", (payload: string | { from: string; to: string; promotion?: string | undefined }) => {
+            console.info("payload for 'move_sent' ->", payload);
             OnRecieveMove(payload);
         });
 
         socket.on("handshake", (payload: { uid: string; matchid: string }) => {
             console.info("Handshake received from: " + socket.id);
-            console.info("handshake payload ->", JSON.stringify(payload));
+            console.info(" payload 'handshake' ->", JSON.stringify(payload));
             OnHandshake(payload);
         });
 
-        socket.on("disconnect", () => {
-            console.info("Disconnect received from: " + socket.id);
+        socket.on("disconnect", (payload) => {
+            console.info("payload 'Disconnect' : ", payload);
         });
+
         const OnHandshake = (payload: { uid: string; matchid: string }) => {
             const { uid, matchid } = payload;
             if (!uid || !matchid) return;
@@ -95,18 +64,20 @@ export class ServerSocket {
             this.io.in(socket.id).socketsJoin(matchid);
 
             // const curGameDetails = this.matches[matchid];
-            this.getMatch({ match_id: matchid }).then((curGameDetails) => {
-                console.info(curGameDetails);
+            this.getMatch({ matchId: matchid }).then((curGameDetails) => {
                 if (curGameDetails) {
-                    const { baseTime, incrementTime, move_data, createdAt, reason, w, b } = curGameDetails;
-                    this.SendMessage("recieved_matchdetails", socket.id, {
-                        stats: reason,
-                        whitePlayerId: w,
-                        blackPlayerId: b,
+                    const { baseTime, incrementTime, moves, time, startedAt, stats, whiteId, blackId } = curGameDetails;
+                    const payload = {
+                        stats,
+                        whiteId,
+                        blackId,
+                        movesData: moves.map((d, i) => {
+                            return { move: d, time: moment(time[i]).toDate().getTime() };
+                        }),
+                        startedAt: moment(startedAt).toDate().getTime(),
                         gameType: { baseTime, incrementTime },
-                        movesData: move_data,
-                        startedAt: createdAt,
-                    });
+                    };
+                    this.SendMessage("recieved_matchdetails", socket.id, payload);
                 } else
                     this.SendMessage("recieved_matchdetails", socket.id, {
                         error: "not found match",
@@ -114,40 +85,20 @@ export class ServerSocket {
             });
         };
         const OnRecieveMove = (payload: string | { from: string; to: string; promotion?: string | undefined }) => {
-            console.info("Message received from " + socket.id);
-            console.info("payload " + JSON.stringify(payload));
-            // socket.emit("recieved_move", { move: payload.move, moveTime: moment().toDate() });
-
             const { uid, matchid } = this.socketidtouserandmatchid[socket.id];
-            console.log(uid, matchid);
 
-            const curGameDetails = this.getMatch({ match_id: matchid }).then((curGameDetails) => {
-                console.log(curGameDetails);
+            const curGameDetails = this.getMatch({ matchId: matchid }).then((curGameDetails) => {
                 if (curGameDetails) {
-                    const matchGame = new Chess(curGameDetails.position);
+                    const game = new Chess(curGameDetails.position);
 
-                    console.log(matchGame.turn());
-                    console.log(curGameDetails[matchGame.turn()], uid);
-
-                    if (curGameDetails[matchGame.turn()] === uid) {
+                    if (curGameDetails[game.turn() === "w" ? "whiteId" : "blackId"] === uid) {
                         const curTime = moment().toDate();
-                        try {
-                            matchGame.move(payload);
-                        } catch {
-                            try {
-                                matchGame.move({
-                                    ...(payload as { from: string; to: string; promotion?: string | undefined }),
-                                    promotion: "q" as PieceSymbol,
-                                });
-                            } catch {
-                                console.log("wrong move");
-                            }
-                        }
-                        if (matchGame.history().length) {
-                            this.updateMatch({ match_id: matchid, move: matchGame.history()[0], time: curTime, position: matchGame.fen() });
+                        this.tryToMakeMove(game, payload);
+                        if (game.history().length) {
+                            this.updateMatch({ matchId: matchid, move: game.history()[0], time: curTime, position: game.fen() });
                             this.SendMessage("recieved_move", matchid, {
-                                move: matchGame.history()[0],
-                                time: curTime,
+                                move: game.history()[0],
+                                time: curTime.getTime(),
                             });
                         }
                     }
@@ -155,7 +106,54 @@ export class ServerSocket {
             });
         };
     };
+    tryToMakeMove = (game: Chess, payload: string | { from: string; to: string; promotion?: string | undefined }) => {
+        try {
+            game.move(payload);
+        } catch {
+            try {
+                game.move({
+                    ...(payload as { from: string; to: string; promotion?: string | undefined }),
+                    promotion: "q" as PieceSymbol,
+                });
+            } catch {
+                console.log("wrong move");
+            }
+        }
+    };
+    getMatch = async (payload: { matchId: string }) => {
+        try {
+            const { matchId } = payload;
+            const res = await prisma.match.findFirst({
+                where: {
+                    matchId: Number(matchId),
+                },
+            });
 
+            if (res) return res;
+            else console.info("Not Found");
+        } catch (err) {
+            console.log(err);
+        }
+    };
+    updateMatch = async (payload: { matchId: string; position: string; move: string; time: Date }) => {
+        try {
+            const { matchId, position, move, time } = payload;
+            const res = await prisma.match.update({
+                where: {
+                    matchId: Number(matchId),
+                },
+                data: {
+                    position,
+                    moves: { push: move },
+                    time: { push: time },
+                },
+            });
+
+            console.info("updateMatch ->", res);
+        } catch (err) {
+            console.log(err);
+        }
+    };
     GetUidFromSocketID = (id: string) => {
         return Object.keys(this.users).find((uid) => this.users[uid] === id);
     };

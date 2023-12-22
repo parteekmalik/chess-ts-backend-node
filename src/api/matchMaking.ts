@@ -25,16 +25,16 @@ const test = () => {
             game_type: { basetime: 60000 * 10, incrementtime: 0 },
         })
     );
-    console.log(createQuerry("UPDATE", "profile", { live_match: "1234" }, { user_id: "1" }));
+    console.log(createQuerry("UPDATE", "profile", { live_match: "1234" }, { userId: "1" }));
 };
 const main = () => {
     types.map(async (payload) => {
         try {
             let players = await prisma.watingplayer.findMany({
                 where: {
-                    base_time: payload[0],
-                    increment_time: payload[1],
-                    match_id: -1,
+                    baseTime: payload[0],
+                    incrementTime: payload[1],
+                    matchId: -1,
                 },
             });
 
@@ -43,14 +43,14 @@ const main = () => {
             for (let i = 0; i < Math.floor(players.length / 2) * 2; i += 2) {
                 console.log("i -> ", i);
                 const time = moment().toDate();
-                console.info(players[i].is_guest, players[i + 1].is_guest, players[i].is_guest !== players[i + 1].is_guest);
-                if (players[i].is_guest !== players[i + 1].is_guest) continue;
+                console.info(players[i].isGuest, players[i + 1].isGuest, players[i].isGuest !== players[i + 1].isGuest);
+                if (players[i].isGuest !== players[i + 1].isGuest) continue;
 
                 let res = await prisma.match.create({
                     data: {
-                        createdAt: time,
-                        w: players[i].user_id,
-                        b: players[i + 1].user_id,
+                        startedAt: time,
+                        whiteId: players[i].userId,
+                        blackId: players[i + 1].userId,
                         baseTime: payload[0],
                         incrementTime: payload[1],
                     },
@@ -59,21 +59,20 @@ const main = () => {
 
                 await prisma.watingplayer.update({
                     where: {
-                        user_id: res.w,
+                        userId: res.whiteId,
                     },
                     data: {
-                        match_id: res.match_id,
+                        matchId: res.matchId,
                     },
                 });
                 await prisma.watingplayer.update({
                     where: {
-                        user_id: res.b,
+                        userId: res.blackId,
                     },
                     data: {
-                        match_id: res.match_id,
+                        matchId: res.matchId,
                     },
                 });
-
 
                 // console.info("watingplayer update with live_match -> ", res.rows);
             }

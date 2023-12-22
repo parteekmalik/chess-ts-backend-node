@@ -23,7 +23,7 @@ ADD COLUMN     "board" TEXT NOT NULL,
 ADD COLUMN     "gameType" JSONB NOT NULL,
 ADD COLUMN     "match_id" SERIAL NOT NULL,
 ADD COLUMN     "white" INTEGER NOT NULL,
-ALTER COLUMN "createdAt" SET DATA TYPE TEXT,
+ALTER COLUMN "startedAt" SET DATA TYPE TEXT,
 ADD CONSTRAINT "Match_pkey" PRIMARY KEY ("match_id");
 
 -- AlterTable

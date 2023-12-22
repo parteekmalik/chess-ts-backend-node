@@ -11,10 +11,10 @@ const prisma = new PrismaClient();
 const getGame = async (gameid: { username: string; password: string }, response: any) => {
     try {
         const { username, password } = gameid;
-        // const res = await pool.query('SELECT * FROM "users" WHERE user_name = $1 AND password = $2', [username , password ]);
+        // const res = await pool.query('SELECT * FROM "users" WHERE userName = $1 AND password = $2', [username , password ]);
         const res = await prisma.users.findFirst({
             where: {
-                user_name: username,
+                userName: username,
                 password: password,
             },
         });

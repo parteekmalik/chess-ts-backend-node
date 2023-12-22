@@ -11,50 +11,50 @@ const prisma = new PrismaClient();
 const New = express.Router();
 New.use(express.json());
 
-const getGame = async (game: { userid: string; gameType: { baseTime: number; incrementTime: number }; createdAt: Date }) => {
+const getGame = async (game: { userid: string; gameType: { baseTime: number; incrementTime: number }; startedAt: Date }) => {
     try {
         const { userid, gameType } = game;
 
-        let is_guest = false;
-        if (userid.slice(0, 5) === "Guest") is_guest = true;
+        let isGuest = false;
+        if (userid.slice(0, 5) === "Guest") isGuest = true;
 
         // Create waiting player record
         const waitingPlayer = await prisma.watingplayer.create({
             data: {
                 time: moment().toDate(),
-                user_id: userid,
-                base_time: gameType.baseTime,
-                increment_time: gameType.incrementTime,
-                is_guest,
+                userId: userid,
+                baseTime: gameType.baseTime,
+                incrementTime: gameType.incrementTime,
+                isGuest,
             },
         });
 
         console.info("Inserted waitingplayers", waitingPlayer);
 
-        // Wait for matchmaking and retrieve match_id
-        const match_id = await new Promise<number>((resolve, reject) => {
+        // Wait for matchmaking and retrieve matchId
+        const matchId = await new Promise<number>((resolve, reject) => {
             const intervalId = setInterval(async () => {
                 try {
                     console.log("Inside loop ->");
 
                     const waitingPlayerResult = await prisma.watingplayer.findFirst({
                         where: {
-                            request_id: waitingPlayer.request_id,
+                            requestId: waitingPlayer.requestId,
                         },
                     });
 
                     console.log("Inside loop waiting for matchmaking -> ", moment().toDate().getDate(), ", res -> ", waitingPlayerResult);
                     if (waitingPlayerResult !== null) {
-                        if (waitingPlayerResult?.match_id !== -1) {
+                        if (waitingPlayerResult?.matchId !== -1) {
                             // Delete waiting player record
                             await prisma.watingplayer.delete({
                                 where: {
-                                    request_id: waitingPlayer.request_id,
+                                    requestId: waitingPlayer.requestId,
                                 },
                             });
 
                             clearInterval(intervalId); // Stop the interval
-                            resolve(waitingPlayerResult.match_id); // Resolve the promise with the result
+                            resolve(waitingPlayerResult.matchId); // Resolve the promise with the result
                         }
                     }
                 } catch (error) {
@@ -63,10 +63,10 @@ const getGame = async (game: { userid: string; gameType: { baseTime: number; inc
             }, 100);
         });
 
-        // Retrieve match data using match_id
+        // Retrieve match data using matchId
         const matchData = await prisma.match.findFirst({
             where: {
-                match_id: match_id,
+                matchId: matchId,
             },
         });
 
@@ -78,7 +78,7 @@ const getGame = async (game: { userid: string; gameType: { baseTime: number; inc
 
 New.post("/", (req, res) => {
     console.log(req.body);
-    const payload = { createdAt: moment().toDate(), userid: req.body.userid, gameType: req.body.gameType };
+    const payload = { startedAt: moment().toDate(), userid: req.body.userid, gameType: req.body.gameType };
     getGame(payload).then((data) => {
         res.status(200).json(data);
         console.log("then -> ", data);
