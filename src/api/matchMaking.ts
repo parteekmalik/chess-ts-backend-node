@@ -53,6 +53,8 @@ const main = () => {
                         blackId: players[i + 1].userId,
                         baseTime: payload[0],
                         incrementTime: payload[1],
+                        moves:[""],
+                        time:[time],
                     },
                 });
                 console.info("inserted new math -> ", res);

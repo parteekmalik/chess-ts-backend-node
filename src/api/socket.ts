@@ -72,9 +72,9 @@ export class ServerSocket {
                         whiteId,
                         blackId,
                         movesData: moves.map((d, i) => {
-                            return { move: d, time: moment(time[i]).toDate().getTime() };
+                            return { move: d, time: moment(time[i]).toDate() };
                         }),
-                        startedAt: moment(startedAt).toDate().getTime(),
+                        startedAt: moment(startedAt).toDate(),
                         gameType: { baseTime, incrementTime },
                     };
                     this.SendMessage("recieved_matchdetails", socket.id, payload);
@@ -98,7 +98,7 @@ export class ServerSocket {
                             this.updateMatch({ matchId: matchid, move: game.history()[0], time: curTime, position: game.fen() });
                             this.SendMessage("recieved_move", matchid, {
                                 move: game.history()[0],
-                                time: curTime.getTime(),
+                                time: curTime,
                             });
                         }
                     }
