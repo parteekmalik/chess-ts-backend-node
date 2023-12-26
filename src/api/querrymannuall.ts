@@ -7,7 +7,7 @@ const get = async (q: string, data?: any[]) => {
     console.log(res);
 };
 // get('SELECT * FROM "puzzles" WHERE themes LIKE $1 LIMIT 2', ["%promotion%"]);
-get('SELECT * FROM "puzzles" WHERE id = $1', [1716572]);
+// get('SELECT * FROM "puzzles" WHERE id = $1', [1716572]);
 // highest rating 3326 minimum 399
 // get('SELECT * FROM "puzzles" WHERE rating < $1 LIMIT 1', [380]);
 
@@ -16,3 +16,6 @@ get('SELECT * FROM "puzzles" WHERE id = $1', [1716572]);
 // get('SELECT * FROM "puzzles" LIMIT 1;');
 // get('ALTER TABLE "puzzles" DROP COLUMN new_rating_deviation;');
 // get('ALTER TABLE "puzzles" RENAME COLUMN new_rating_deviation TO rating_deviation;');
+
+// get('DELETE FROM "puzzles";');
+get('ALTER TABLE puzzles AUTO_INCREMENT = number;');

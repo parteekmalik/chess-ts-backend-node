@@ -58,6 +58,6 @@ model puzzles {
   moves           String[]
   rating          Int
   ratingDeviation Int
-  themes          String
-  openingTags     String
+  themes          String[]
+  openingTags     String[]
 }

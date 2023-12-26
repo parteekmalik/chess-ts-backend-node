@@ -74,5 +74,6 @@ typings/
 
 #database 
 *.csv
+*.zst
 
 dist
