@@ -3,7 +3,6 @@ import moment from "moment";
 import express from "express";
 import { Pool } from "pg";
 const path = require("path");
-import { v4 as uuidv4 } from "uuid";
 
 import { PrismaClient } from "@prisma/client";
 
