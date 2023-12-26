@@ -36,7 +36,7 @@ getpuzzles.get("/", async (req, res) => {
     let puzzleList = await Promise.all(
         totalPuzzlesArrayId.map(async (data) => {
             const randomId = data[Math.floor(Math.random() * data.length)];
-            const puzzle = await prisma.puzzles.findMany({
+            const puzzle = await prisma.puzzles.findFirst({
                 where: {
                     id: randomId,
                 },

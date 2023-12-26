@@ -1,5 +1,5 @@
 import moment from "moment";
-import { prisma } from "../Utils";
+import { prisma } from "./Utils";
 
 const types = [
     [60000 * 10, 0],

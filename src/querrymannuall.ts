@@ -1,5 +1,5 @@
 import { Pool } from "pg";
-import { createQuerry, poolConfg } from "../Utils";
+import { createQuerry, poolConfg } from "./Utils";
 
 const pool = new Pool(poolConfg);
 const get = async (q: string, data?: any[]) => {
