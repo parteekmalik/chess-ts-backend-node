@@ -52,6 +52,10 @@ export const createQuerry = (type: Tquerry, db: string, data: Object, where?: Ob
         }
     };
     // console.log("querry -> ", switches(type));
-    return switches(type) + ';';
+    return switches(type) + ";";
 };
 export type Tquerry = "INSERT" | "UPDATE" | "DELETE" | "SELECT *" | "SELECT";
+
+import { PrismaClient } from "@prisma/client";
+
+export const prisma = new PrismaClient();

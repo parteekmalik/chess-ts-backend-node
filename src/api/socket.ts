@@ -1,15 +1,9 @@
 import { Chess, DEFAULT_POSITION, PieceSymbol } from "chess.js";
 import { Server as HttpServer } from "http";
-import { lastIndexOf } from "lodash";
 import moment from "moment";
 import { Socket, Server } from "socket.io";
-import { v4 } from "uuid";
-import { getLastElement, poolConfg } from "../Utils";
-import { Pool } from "pg";
+import { prisma } from "../Utils";
 
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
 
 export class ServerSocket {
     public static instance: ServerSocket;

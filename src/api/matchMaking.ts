@@ -1,32 +1,12 @@
 import moment from "moment";
-import { Pool } from "pg";
-import { createQuerry, poolConfg } from "../Utils";
+import { prisma } from "../Utils";
 
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-
-const getMatchReq = ' FROM "watingplayer" WHERE basetime = $1 AND incrementtime = $2';
 const types = [
     [60000 * 10, 0],
     [60000 * 5, 0],
 ];
-const createMatch = 'INSERT INTO "match" ( started_at, players, game_type) VALUES ($1, $2, $3) RETURNING *';
 console.log("matchMakingServer Running");
 
-const test = () => {
-    console.log(createQuerry("SELECT *", "watingplayer", { basetime: 60000 * 10, incrementtime: 0 }));
-    console.log(createQuerry("DELETE", "watingplayer", { basetime: 60000 * 10, incrementtime: 0 }));
-    console.log(
-        createQuerry("INSERT", "match", {
-            time: [moment().toDate()],
-            started_at: moment().toDate(),
-            players: { w: "1", b: "2" },
-            game_type: { basetime: 60000 * 10, incrementtime: 0 },
-        })
-    );
-    console.log(createQuerry("UPDATE", "profile", { live_match: "1234" }, { userId: "1" }));
-};
 const main = () => {
     types.map(async (payload) => {
         try {
@@ -53,8 +33,8 @@ const main = () => {
                         blackId: players[i + 1].userId,
                         baseTime: payload[0],
                         incrementTime: payload[1],
-                        moves:[""],
-                        time:[time],
+                        moves: [""],
+                        time: [time],
                     },
                 });
                 console.info("inserted new math -> ", res);

@@ -2,11 +2,9 @@ import { Chess } from "chess.js";
 import moment from "moment";
 import express from "express";
 import { Pool } from "pg";
+import { prisma } from "../../Utils";
 const path = require("path");
 
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
 
 const getGame = async (gameid: string, response: any) => {
     try {

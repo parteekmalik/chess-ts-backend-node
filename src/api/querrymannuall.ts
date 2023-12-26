@@ -18,4 +18,4 @@ const get = async (q: string, data?: any[]) => {
 // get('ALTER TABLE "puzzles" RENAME COLUMN new_rating_deviation TO rating_deviation;');
 
 // get('DELETE FROM "puzzles";');
-get('ALTER TABLE puzzles AUTO_INCREMENT = number;');
+// get('ALTER TABLE puzzles AUTO_INCREMENT = number;');

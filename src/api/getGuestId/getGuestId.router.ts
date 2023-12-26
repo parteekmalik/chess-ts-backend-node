@@ -1,11 +1,7 @@
 import express from "express";
 import moment from "moment";
 import { Pool } from "pg";
-import { createQuerry, poolConfg } from "../../Utils";
-
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { createQuerry, poolConfg, prisma } from "../../Utils";
 
 const getGuestId = express.Router();
 getGuestId.use(express.json());
