@@ -39,7 +39,12 @@ Development utilities:
 ```
 npm install
 ```
-
+```
+npm run create_puzzle_db
+```
+```
+npm run dev
+```
 ## Lint
 
 ```
